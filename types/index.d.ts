@@ -4,3 +4,10 @@ import services from '@/services';
 export type Service = (...arg: any[]) => Promise<any>;
 
 export type ServiceNames = keyof typeof services;
+
+export interface Project {
+    type: string;
+    file: string;
+    preview: string;
+    title: string;
+}
