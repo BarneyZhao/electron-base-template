@@ -7,6 +7,7 @@ import { Service } from 'types';
 
 import mainConfig from './config';
 import services from './services';
+import { closeDb } from './db';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -28,13 +29,14 @@ const createWindow = () => {
     if (isDev) {
         mainWindow.loadURL(mainConfig.DEV_URL);
     } else {
-        mainWindow.loadURL(
-            Url.format({
-                protocol: 'file',
-                slashes: true,
-                pathname: Path.join(__dirname, mainConfig.PROD_URL),
-            })
-        );
+        // mainWindow.loadURL(
+        //     Url.format({
+        //         protocol: 'file',
+        //         slashes: true,
+        //         pathname: Path.join(__dirname, mainConfig.PROD_URL),
+        //     })
+        // );
+        mainWindow.loadURL(mainConfig.PROD_URL);
     }
 
     // Open the DevTools.
@@ -46,6 +48,7 @@ const createWindow = () => {
         // in an array if your app supports multi windows, this is the time
         // when you should delete the corresponding element.
         mainWindow = null;
+        closeDb();
     });
 };
 

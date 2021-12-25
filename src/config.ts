@@ -8,9 +8,11 @@ export default {
         minHeight: 900,
         title: 'electron-base',
     },
-    DEV_URL: 'http://localhost:3000',
+    DEV_URL: 'https://barneyzhao.github.io/wallpaper-engine-video-viewer/',
+    // DEV_URL: 'http://localhost:3000',
     // 前端项目构建后的 dist 文件夹改名 app 后放入项目根目录
-    PROD_URL: 'app/index.html',
+    // PROD_URL: 'app/index.html',
+    PROD_URL: 'https://barneyzhao.github.io/wallpaper-engine-video-viewer/',
     APP_MENUS: [
         {
             label: '窗口',

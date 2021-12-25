@@ -3,7 +3,9 @@ import glob from 'glob';
 import { chunk } from 'lodash';
 
 import workerPool from './worker';
+import workerPool2 from './worker2';
 import { POOL_SIZE } from './config';
+import { TABLE_NAME, TABLE_SETS, getDb } from './db';
 
 const getProjectJsons = (folderPath: string): Promise<string[]> => {
     return new Promise((resolve, reject) => {
@@ -41,6 +43,54 @@ const exportApis = {
         return projectArr.flat().sort((a, b) => {
             if (a && b) return b.createTime - a.createTime;
             return 0;
+        });
+    },
+    initProjectsDb: async (folderPath: string) => {
+        const projectJsons = await getProjectJsons(folderPath);
+        const projectInfo = await workerPool2.exec({ projectJsons });
+        const db = await getDb();
+
+        return new Promise((resolve) => {
+            db.serialize(() => {
+                const stmt = db.prepare(
+                    `INSERT OR IGNORE INTO ${TABLE_NAME} (json_path, ${TABLE_SETS.join(
+                        ','
+                    )}, create_time) VALUES (?,?,?,?,?)`
+                );
+                projectInfo.forEach(({ jsonPath, file, preview, title, createTime }) => {
+                    const param: any[] = [jsonPath];
+                    if (file) {
+                        param.push(
+                            file,
+                            preview || '',
+                            title || '',
+                            createTime && new Date(createTime)
+                        );
+                    }
+                    stmt.run(param);
+                });
+                stmt.finalize();
+
+                resolve({ length: projectInfo.length });
+            });
+        });
+    },
+    getProjectsByPage: async (folderPath: string, pageNo = 1, pageSize = 20) => {
+        const db = await getDb();
+
+        return new Promise((resolve) => {
+            db.serialize(() => {
+                db.all(
+                    `SELECT json_path,${TABLE_SETS.join(
+                        ','
+                    )} FROM ${TABLE_NAME} WHERE file NOT NULL ORDER BY create_time desc limit 0,10`,
+                    function (err: any, data: any) {
+                        if (!err) {
+                            resolve(data);
+                        }
+                    }
+                );
+            });
         });
     },
 };
