@@ -45,17 +45,67 @@ const exportApis = {
             return 0;
         });
     },
-    initProjectsDb: async (folderPath: string) => {
+    initProjectsDb2: async (folderPath: string) => {
         const projectJsons = await getProjectJsons(folderPath);
-        const projectInfo = await workerPool2.exec({ projectJsons });
         const db = await getDb();
 
         return new Promise((resolve) => {
             db.serialize(() => {
                 const stmt = db.prepare(
-                    `INSERT OR IGNORE INTO ${TABLE_NAME} (json_path, ${TABLE_SETS.join(
-                        ','
-                    )}, create_time) VALUES (?,?,?,?,?)`
+                    `INSERT OR IGNORE INTO ${TABLE_NAME} (json_path) VALUES (?)`
+                );
+                projectJsons.forEach((jsonPath) => {
+                    stmt.run(jsonPath);
+                });
+                stmt.finalize();
+
+                resolve({ length: projectJsons.length });
+            });
+        });
+    },
+    getProjectsByPage2: async (folderPath: string, pageNo = 1, pageSize = 20) => {
+        const limitStr = `${(pageNo - 1) * pageSize}, ${pageSize}`;
+        const querySets = `json_path, ${TABLE_SETS.join(',')}`;
+
+        const db = await getDb();
+
+        const list = await new Promise<Record<string, string>[]>((resolve) => {
+            db.serialize(() => {
+                db.all(
+                    `SELECT ${querySets} FROM ${TABLE_NAME} LIMIT ${limitStr}`,
+                    function (err: any, data: any) {
+                        if (!err) {
+                            resolve(data);
+                        } else {
+                            console.log(err);
+                            resolve([]);
+                        }
+                    }
+                );
+            });
+        });
+
+        const projectList: Record<string, string>[] = [];
+        for await (const project of list) {
+            let temp: Record<string, any> = project;
+            if (!project.file) {
+                [temp] = await workerPool2.exec({ projectJsons: [temp.jsonPath] });
+            }
+            projectList.push(temp);
+        }
+        return projectList;
+    },
+    initProjectsDb: async (folderPath: string) => {
+        const projectJsons = await getProjectJsons(folderPath);
+        const projectInfo = await workerPool2.exec({ projectJsons });
+
+        const insertSets = `json_path, ${TABLE_SETS.join(',')}, create_time`;
+        const db = await getDb();
+
+        return new Promise((resolve) => {
+            db.serialize(() => {
+                const stmt = db.prepare(
+                    `INSERT OR IGNORE INTO ${TABLE_NAME} (${insertSets}) VALUES (?,?,?,?,?)`
                 );
                 projectInfo.forEach(({ jsonPath, file, preview, title, createTime }) => {
                     const param: any[] = [jsonPath];
@@ -76,22 +126,28 @@ const exportApis = {
         });
     },
     getProjectsByPage: async (folderPath: string, pageNo = 1, pageSize = 20) => {
+        const limitStr = `${(pageNo - 1) * pageSize}, ${pageSize}`;
+        const querySets = `json_path, ${TABLE_SETS.join(',')}`;
+
         const db = await getDb();
 
-        return new Promise((resolve) => {
+        const list = await new Promise<Record<string, string>[]>((resolve) => {
             db.serialize(() => {
                 db.all(
-                    `SELECT json_path,${TABLE_SETS.join(
-                        ','
-                    )} FROM ${TABLE_NAME} WHERE file NOT NULL ORDER BY create_time desc limit 0,10`,
+                    `SELECT ${querySets} FROM ${TABLE_NAME} WHERE file NOT NULL ORDER BY create_time DESC LIMIT ${limitStr}`,
                     function (err: any, data: any) {
                         if (!err) {
                             resolve(data);
+                        } else {
+                            console.log(err);
+                            resolve([]);
                         }
                     }
                 );
             });
         });
+
+        return list;
     },
 };
 
