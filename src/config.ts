@@ -4,8 +4,6 @@ export default {
     WINDOW_OPS: {
         width: 1600,
         height: 900,
-        minWidth: 1600,
-        minHeight: 900,
         title: 'electron-base',
     },
     DEV_URL: 'https://barneyzhao.github.io/wallpaper-engine-video-viewer/',

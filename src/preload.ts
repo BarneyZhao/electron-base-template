@@ -4,13 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { ServiceNames } from 'types';
 
 // services.ts 中增加接口以后，要在这里添加注册，然后才能在前端项目中暴露对应调用函数
-const apis: ServiceNames[] = [
-    'selectFolder',
-    'openFile',
-    'getProjects',
-    'initProjectsDb',
-    'getProjectsByPage',
-];
+const apis: ServiceNames[] = ['selectFolder', 'openFile', 'scanProjectsToDb', 'getProjectsByPage'];
 
 const exposeObj = {
     apis: apis.reduce((obj, api) => {
@@ -19,7 +13,8 @@ const exposeObj = {
     getImg: async (path: string) => {
         // const nativeImg = nativeImage.createFromPath(path);
         // return nativeImg.toDataURL();
-        const imgBuffer = await readFile(path);
+        const imgBuffer = await readFile(path).catch(() => '');
+        if (imgBuffer === '') return imgBuffer;
         return 'data:image/png;base64,' + imgBuffer.toString('base64');
     },
 };

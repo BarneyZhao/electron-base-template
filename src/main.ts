@@ -1,6 +1,6 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, Menu, MenuItem, ipcMain } from 'electron';
-import Url from 'url';
+// import Url from 'url';
 import Path from 'path';
 
 import { Service } from 'types';
