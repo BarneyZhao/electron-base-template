@@ -7,14 +7,16 @@ const staticPool = new StaticPool({
     size: POOL_SIZE,
     task({
         folderPath,
-        relativeProjectJsons,
+        jsonFile,
+        projectFolders,
     }: {
         folderPath: string;
-        relativeProjectJsons: string[];
+        jsonFile: string;
+        projectFolders: string[];
     }) {
         const _fs = this.require('fs');
-        return relativeProjectJsons.map((relativeJsonPath) => {
-            const jsonPath = folderPath + relativeJsonPath;
+        return projectFolders.map((projectFolder) => {
+            const jsonPath = `${folderPath}/${projectFolder}/${jsonFile}`;
             let jsonObj: Project = {} as Project;
             let createTime: number = Date.now();
             try {
@@ -23,7 +25,6 @@ const staticPool = new StaticPool({
             } catch (error) {
                 console.log(error);
             }
-            const projectFolder = relativeJsonPath.slice(0, relativeJsonPath.lastIndexOf('/'));
             if (!jsonObj.type || jsonObj.type !== 'video') {
                 return { projectFolder };
             }

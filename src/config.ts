@@ -41,3 +41,4 @@ export default {
 };
 
 export const POOL_SIZE = 4;
+export const JSON_FILE = 'project.json';

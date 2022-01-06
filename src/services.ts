@@ -3,7 +3,7 @@ import glob from 'glob';
 import { chunk } from 'lodash';
 
 import workerPool from './worker';
-import { POOL_SIZE } from './config';
+import { POOL_SIZE, JSON_FILE } from './config';
 import {
     SCAN_PATH_TABLE_NAME,
     PROJECT_TABLE_NAME,
@@ -12,15 +12,17 @@ import {
     getDb,
 } from './db';
 
-const getProjectJsons = (folderPath: string, isRelative?: boolean): Promise<string[]> => {
+const getProjectFolders = (folderPath: string): Promise<string[]> => {
     return new Promise((resolve, reject) => {
-        console.log('running glob...');
-        glob(`${folderPath}/**/project.json`, { nodir: true }, (err, filesPath) => {
+        glob(`${folderPath}/**/${JSON_FILE}`, { nodir: true }, (err, filesPath) => {
             if (!err) {
                 resolve(
                     filesPath
                         .filter((file) => !file.includes('@eaDir'))
-                        .map((file) => (isRelative ? file.replace(folderPath, '') : file))
+                        // 最后得到文件夹名
+                        .map((file) =>
+                            file.replace(`${folderPath}/`, '').replace(`/${JSON_FILE}`, '')
+                        )
                 );
             } else {
                 reject(err);
@@ -68,15 +70,9 @@ const exportApis = {
     },
     scanProjectsToDb: async (folderPath: string) => {
         const scanPathId = await getScanPathId(folderPath);
-        const relativeProjectJsons = await getProjectJsons(folderPath, true);
+        const projectFolders = await getProjectFolders(folderPath);
 
-        const threadsTaskPromiseList = chunk(
-            relativeProjectJsons,
-            Math.ceil(relativeProjectJsons.length / POOL_SIZE)
-        ).map((chunkJsons) => workerPool.exec({ folderPath, relativeProjectJsons: chunkJsons }));
-
-        const projectArr = (await Promise.all(threadsTaskPromiseList)).flat();
-        const thisRoundFolders = projectArr.map(({ projectFolder }) => projectFolder).join('","');
+        const thisRoundFolders = projectFolders.join('","');
 
         const db = await getDb();
 
@@ -95,7 +91,7 @@ const exportApis = {
                 }
             );
         });
-        const existCountAfterDelete = await new Promise<number>((resolve, reject) => {
+        const existFoldersAfterDelete = await new Promise<string[]>((resolve, reject) => {
             db.serialize(() => {
                 db.run(
                     `DELETE FROM ${PROJECT_TABLE_NAME}
@@ -107,12 +103,12 @@ const exportApis = {
                     }
                 );
 
-                db.get(
-                    `SELECT COUNT(*) AS count FROM ${PROJECT_TABLE_NAME} WHERE scan_path_id=?`,
+                db.all(
+                    `SELECT project_folder FROM ${PROJECT_TABLE_NAME} WHERE scan_path_id=?`,
                     [scanPathId],
-                    function (err, row: { count: number }) {
+                    function (err, data: { project_folder: string }[]) {
                         if (!err) {
-                            resolve(row.count);
+                            resolve(data.map(({ project_folder }) => project_folder));
                         } else {
                             reject(err);
                         }
@@ -120,7 +116,17 @@ const exportApis = {
                 );
             });
         });
-        const newCount = projectArr.length - existCountAfterDelete;
+
+        const needToCheckProjects = projectFolders.filter(
+            (f) => !existFoldersAfterDelete.includes(f)
+        );
+        const threadsTaskPromiseList = chunk(
+            needToCheckProjects,
+            Math.ceil(needToCheckProjects.length / POOL_SIZE)
+        ).map((chunkJsons) =>
+            workerPool.exec({ folderPath, jsonFile: JSON_FILE, projectFolders: chunkJsons })
+        );
+        const projectArr = (await Promise.all(threadsTaskPromiseList)).flat();
 
         return new Promise((resolve, reject) => {
             db.serialize(() => {
@@ -160,7 +166,11 @@ const exportApis = {
                     if (err) reject(err);
                 });
 
-                resolve({ length: projectArr.length, invalidCount, newCount });
+                resolve({
+                    length: projectFolders.length,
+                    invalidCount,
+                    newCount: needToCheckProjects.length,
+                });
             });
         });
     },
@@ -189,7 +199,7 @@ const exportApis = {
             );
         });
 
-        return new Promise<any>((resolve) => {
+        return new Promise<{ total: number; list: ProjectTableRow[] }>((resolve) => {
             db.all(
                 `SELECT ${querySets} FROM ${PROJECT_TABLE_NAME}
                     WHERE scan_path_id=? AND file NOT NULL
