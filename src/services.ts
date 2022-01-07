@@ -69,9 +69,26 @@ const exportApis = {
         shell.openPath(file);
     },
     scanProjectsToDb: async (folderPath: string) => {
-        const scanPathId = await getScanPathId(folderPath);
-        const projectFolders = await getProjectFolders(folderPath);
+        const processInfo = {
+            scan: 0,
+            glob: 0,
+            invalidCount: 0,
+            deleteAndSelect: 0,
+            needToCheckProjectsCount: 0,
+            projectCheck: 0,
+            insert: 0,
+        };
+        let timestamp = 0;
 
+        timestamp = Date.now();
+        const scanPathId = await getScanPathId(folderPath);
+        processInfo.scan = Date.now() - timestamp;
+
+        timestamp = Date.now();
+        const projectFolders = await getProjectFolders(folderPath);
+        processInfo.glob = Date.now() - timestamp;
+
+        timestamp = Date.now();
         const thisRoundFolders = projectFolders.join('","');
 
         const db = await getDb();
@@ -91,6 +108,9 @@ const exportApis = {
                 }
             );
         });
+        processInfo.invalidCount = Date.now() - timestamp;
+
+        timestamp = Date.now();
         const existFoldersAfterDelete = await new Promise<string[]>((resolve, reject) => {
             db.serialize(() => {
                 db.run(
@@ -116,7 +136,9 @@ const exportApis = {
                 );
             });
         });
+        processInfo.deleteAndSelect = Date.now() - timestamp;
 
+        timestamp = Date.now();
         const needToCheckProjects = projectFolders.filter(
             (f) => !existFoldersAfterDelete.includes(f)
         );
@@ -127,7 +149,10 @@ const exportApis = {
             workerPool.exec({ folderPath, jsonFile: JSON_FILE, projectFolders: chunkJsons })
         );
         const projectArr = (await Promise.all(threadsTaskPromiseList)).flat();
+        processInfo.needToCheckProjectsCount = needToCheckProjects.length;
+        processInfo.projectCheck = Date.now() - timestamp;
 
+        timestamp = Date.now();
         return new Promise((resolve, reject) => {
             db.serialize(() => {
                 const stmt = db.prepare(
@@ -166,10 +191,12 @@ const exportApis = {
                     if (err) reject(err);
                 });
 
+                processInfo.insert = Date.now() - timestamp;
                 resolve({
                     length: projectFolders.length,
                     invalidCount,
                     newCount: needToCheckProjects.length,
+                    processInfo,
                 });
             });
         });
