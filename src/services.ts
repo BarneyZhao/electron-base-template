@@ -1,5 +1,5 @@
 import { dialog, shell } from 'electron';
-import glob from 'glob';
+import fg from 'fast-glob';
 import { chunk } from 'lodash';
 
 import workerPool from './worker';
@@ -12,23 +12,14 @@ import {
     getDb,
 } from './db';
 
-const getProjectFolders = (folderPath: string): Promise<string[]> => {
-    return new Promise((resolve, reject) => {
-        glob(`${folderPath}/**/${JSON_FILE}`, { nodir: true }, (err, filesPath) => {
-            if (!err) {
-                resolve(
-                    filesPath
-                        .filter((file) => !file.includes('@eaDir'))
-                        // 最后得到文件夹名
-                        .map((file) =>
-                            file.replace(`${folderPath}/`, '').replace(`/${JSON_FILE}`, '')
-                        )
-                );
-            } else {
-                reject(err);
-            }
-        });
-    });
+const getProjectFolders = async (folderPath: string): Promise<string[]> => {
+    const filesPath = await fg(`${folderPath}/**/${JSON_FILE}`);
+    return (
+        filesPath
+            .filter((file) => !file.includes('@eaDir'))
+            // 最后得到文件夹名
+            .map((file) => file.replace(`${folderPath}/`, '').replace(`/${JSON_FILE}`, ''))
+    );
 };
 
 const getScanPathId = async (folderPath: string) => {
@@ -70,23 +61,23 @@ const exportApis = {
     },
     scanProjectsToDb: async (folderPath: string) => {
         const processInfo = {
-            scan: 0,
-            glob: 0,
-            invalidCount: 0,
-            deleteAndSelect: 0,
+            scanTime: 0,
+            globTime: 0,
+            invalidCountTime: 0,
+            deleteAndSelectTime: 0,
             needToCheckProjectsCount: 0,
-            projectCheck: 0,
-            insert: 0,
+            projectCheckTime: 0,
+            insertTime: 0,
         };
         let timestamp = 0;
 
         timestamp = Date.now();
         const scanPathId = await getScanPathId(folderPath);
-        processInfo.scan = Date.now() - timestamp;
+        processInfo.scanTime = Date.now() - timestamp;
 
         timestamp = Date.now();
         const projectFolders = await getProjectFolders(folderPath);
-        processInfo.glob = Date.now() - timestamp;
+        processInfo.globTime = Date.now() - timestamp;
 
         timestamp = Date.now();
         const thisRoundFolders = projectFolders.join('","');
@@ -108,7 +99,7 @@ const exportApis = {
                 }
             );
         });
-        processInfo.invalidCount = Date.now() - timestamp;
+        processInfo.invalidCountTime = Date.now() - timestamp;
 
         timestamp = Date.now();
         const existFoldersAfterDelete = await new Promise<string[]>((resolve, reject) => {
@@ -136,7 +127,7 @@ const exportApis = {
                 );
             });
         });
-        processInfo.deleteAndSelect = Date.now() - timestamp;
+        processInfo.deleteAndSelectTime = Date.now() - timestamp;
 
         timestamp = Date.now();
         const needToCheckProjects = projectFolders.filter(
@@ -150,7 +141,7 @@ const exportApis = {
         );
         const projectArr = (await Promise.all(threadsTaskPromiseList)).flat();
         processInfo.needToCheckProjectsCount = needToCheckProjects.length;
-        processInfo.projectCheck = Date.now() - timestamp;
+        processInfo.projectCheckTime = Date.now() - timestamp;
 
         timestamp = Date.now();
         return new Promise((resolve, reject) => {
@@ -191,7 +182,7 @@ const exportApis = {
                     if (err) reject(err);
                 });
 
-                processInfo.insert = Date.now() - timestamp;
+                processInfo.insertTime = Date.now() - timestamp;
                 resolve({
                     length: projectFolders.length,
                     invalidCount,
