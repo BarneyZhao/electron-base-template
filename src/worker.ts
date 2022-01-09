@@ -15,6 +15,7 @@ const staticPool = new StaticPool({
         projectFolders: string[];
     }) {
         const _fs = this.require('fs');
+        const videoReg = new RegExp(/video/i);
         return projectFolders.map((projectFolder) => {
             const jsonPath = `${folderPath}/${projectFolder}/${jsonFile}`;
             let jsonObj: Project = {} as Project;
@@ -25,7 +26,7 @@ const staticPool = new StaticPool({
             } catch (error) {
                 console.log(error);
             }
-            if (!jsonObj.type || jsonObj.type !== 'video') {
+            if (!jsonObj.type || !videoReg.test(jsonObj.type)) {
                 return { projectFolder };
             }
             const { file, preview, title } = jsonObj;
