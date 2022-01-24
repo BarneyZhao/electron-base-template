@@ -57,7 +57,12 @@ const exportApis = {
         return pathRes[0].replace(/\\/g, '/');
     },
     openFile: async (file: string) => {
+        console.log(`Open file:[${file}].`);
         shell.openPath(file);
+    },
+    openFileFolder: async (path: string) => {
+        console.log(`Open file folder:[${path}].`);
+        shell.showItemInFolder(path);
     },
     scanProjectsToDb: async (folderPath: string) => {
         const processInfo = {
@@ -151,6 +156,7 @@ const exportApis = {
                         scan_path_id,
                         project_folder,
                         file,
+                        file_size,
                         preview,
                         title,
                         create_time
@@ -158,26 +164,30 @@ const exportApis = {
                         $scan_path_id,
                         $project_folder,
                         $file,
+                        $file_size,
                         $preview,
                         $title,
                         $create_time
                     )`
                 );
-                projectArr.forEach(({ projectFolder, file, preview, title, createTime }) => {
-                    const param: Record<string, string | number> = {
-                        $scan_path_id: scanPathId,
-                        $project_folder: projectFolder,
-                    };
-                    if (file) {
-                        Object.assign(param, {
-                            $file: file,
-                            $preview: preview,
-                            $title: title,
-                            $create_time: createTime,
-                        });
+                projectArr.forEach(
+                    ({ projectFolder, file, fileSize, preview, title, createTime }) => {
+                        const param: Record<string, string | number> = {
+                            $scan_path_id: scanPathId,
+                            $project_folder: projectFolder,
+                        };
+                        if (file) {
+                            Object.assign(param, {
+                                $file: file,
+                                $file_size: fileSize,
+                                $preview: preview,
+                                $title: title,
+                                $create_time: createTime,
+                            });
+                        }
+                        stmt.run(param);
                     }
-                    stmt.run(param);
-                });
+                );
                 stmt.finalize(function (err) {
                     if (err) reject(err);
                 });
@@ -192,18 +202,27 @@ const exportApis = {
             });
         });
     },
-    getProjectsByPage: async (folderPath: string, pageNo = 1, pageSize = 20) => {
+    getProjectsByPage: async (
+        folderPath: string,
+        orderBy = 'create_time',
+        orderType = 'DESC',
+        pageNo = 1,
+        pageSize = 20
+    ) => {
         const scanPathId = await getScanPathId(folderPath);
+        const querySets = 'project_folder, file, file_size, preview, title';
+        const conditionStr = `
+            WHERE scan_path_id=? AND file NOT NULL
+            ORDER BY ${orderBy} ${orderType}
+        `;
         const limitStr = `${(pageNo - 1) * pageSize}, ${pageSize}`;
-        const querySets = `project_folder, file, preview, title`;
 
         const db = await getDb();
 
         const total = await new Promise<number>((resolve) => {
             db.get(
                 `SELECT COUNT(*) AS total FROM ${PROJECT_TABLE_NAME}
-                    WHERE scan_path_id=? AND file NOT NULL
-                    ORDER BY create_time DESC
+                    ${conditionStr}
                 `,
                 [scanPathId],
                 function (err, row: { total: number }) {
@@ -220,8 +239,7 @@ const exportApis = {
         return new Promise<{ total: number; list: ProjectTableRow[] }>((resolve) => {
             db.all(
                 `SELECT ${querySets} FROM ${PROJECT_TABLE_NAME}
-                    WHERE scan_path_id=? AND file NOT NULL
-                    ORDER BY create_time DESC
+                    ${conditionStr}
                     LIMIT ${limitStr}
                 `,
                 [scanPathId],

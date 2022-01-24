@@ -1,3 +1,4 @@
+import FS, { Stats } from 'fs';
 import { StaticPool } from 'node-worker-threads-pool';
 
 import { Project } from 'types';
@@ -14,15 +15,17 @@ const staticPool = new StaticPool({
         jsonFile: string;
         projectFolders: string[];
     }) {
-        const _fs = this.require('fs');
+        const _fs: typeof FS = this.require('fs');
         const videoReg = new RegExp(/video/i);
         return projectFolders.map((projectFolder) => {
-            const jsonPath = `${folderPath}/${projectFolder}/${jsonFile}`;
+            const projectPath = `${folderPath}/${projectFolder}`;
             let jsonObj: Project = {} as Project;
             let createTime: number = Date.now();
+            let fileSize = 1;
             try {
-                createTime = _fs.statSync(jsonPath).ctimeMs;
-                jsonObj = JSON.parse(_fs.readFileSync(jsonPath, { encoding: 'utf8' }));
+                jsonObj = JSON.parse(
+                    _fs.readFileSync(`${projectPath}/${jsonFile}`, { encoding: 'utf8' })
+                );
             } catch (error) {
                 console.log(error);
             }
@@ -31,9 +34,18 @@ const staticPool = new StaticPool({
             }
             const { file, preview, title } = jsonObj;
 
+            try {
+                const fileInfo: Stats = _fs.statSync(`${projectPath}/${file}`);
+                createTime = fileInfo.ctimeMs;
+                fileSize = Math.round(fileInfo.size / 1024); // bytes to kb, bytes too large for INTEGER
+            } catch (error) {
+                console.log(error);
+            }
+
             return {
                 projectFolder,
                 file,
+                fileSize,
                 preview,
                 title,
                 createTime,

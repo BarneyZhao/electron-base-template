@@ -1,13 +1,27 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, Menu, MenuItem, ipcMain } from 'electron';
-// import Url from 'url';
+import Url from 'url';
 import Path from 'path';
+import { existsSync } from 'fs';
 
 import { Service } from 'types';
 
 import mainConfig from './config';
 import services from './services';
 import { closeDb } from './db';
+
+const getLocalAppFile = () => {
+    if (existsSync(mainConfig.LOCAL_URL)) {
+        return Url.format({
+            protocol: 'file',
+            slashes: true,
+            // pathname: Path.join(__dirname, mainConfig.LOCAL_URL), // 构建包内的路径
+            pathname: mainConfig.LOCAL_URL, // 项目根路径
+        });
+    }
+    console.log('\n No local app file.');
+    return '';
+};
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -25,19 +39,21 @@ const createWindow = () => {
     });
 
     // and load the index.html of the app.
+    let appUrl = '';
     // mainWindow.loadURL
     if (isDev) {
-        mainWindow.loadURL(mainConfig.DEV_URL);
+        if (mainConfig.DEV_TYPE === 0) {
+            appUrl = mainConfig.DEV_URL;
+        } else if (mainConfig.DEV_TYPE === 1) {
+            appUrl = getLocalAppFile();
+        }
     } else {
-        // mainWindow.loadURL(
-        //     Url.format({
-        //         protocol: 'file',
-        //         slashes: true,
-        //         pathname: Path.join(__dirname, mainConfig.PROD_URL),
-        //     })
-        // );
-        mainWindow.loadURL(mainConfig.PROD_URL);
+        // prod
+        // 本地 app 存在则加载本地
+        appUrl = getLocalAppFile();
     }
+    // 远程 gh-pages 保底
+    mainWindow.loadURL(appUrl || mainConfig.REMOTE_URL);
 
     // Open the DevTools.
     if (isDev) mainWindow.webContents.openDevTools();

@@ -50,6 +50,7 @@ export async function getDb() {
                     "scan_path_id"      INTEGER NOT NULL,
                     "project_folder"    TEXT NOT NULL UNIQUE,
                     "file"              TEXT,
+                    "file_size"         INTEGER,
                     "preview"           TEXT,
                     "title"             TEXT,
                     "create_time"       DATE,

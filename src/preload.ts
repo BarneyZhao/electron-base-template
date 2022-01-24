@@ -4,7 +4,13 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { ServiceNames } from 'types';
 
 // services.ts 中增加接口以后，要在这里添加注册，然后才能在前端项目中暴露对应调用函数
-const apis: ServiceNames[] = ['selectFolder', 'openFile', 'scanProjectsToDb', 'getProjectsByPage'];
+const apis: ServiceNames[] = [
+    'selectFolder',
+    'openFile',
+    'openFileFolder',
+    'scanProjectsToDb',
+    'getProjectsByPage',
+];
 
 const exposeObj = {
     apis: apis.reduce((obj, api) => {
