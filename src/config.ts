@@ -11,8 +11,8 @@ export default {
     DEV_TYPE: 0,
     // 本地的前端开发服务
     DEV_URL: 'http://localhost:3000',
-    // 前端项目构建后的文件夹改名 app 后放入构建后的应用文件夹内, 和 exe 文件同级, 开发时则为项目根目录
-    LOCAL_URL: './app/index.html',
+    // 前端项目构建后的文件夹改名 docs 后放入构建后的应用文件夹内, 和 exe 文件同级, 开发时则为项目根目录
+    DOCS_URL: './docs/index.html',
     // 远程 gh-pages
     REMOTE_URL: 'https://barneyzhao.github.io/wallpaper-engine-video-viewer/',
     APP_MENUS: [

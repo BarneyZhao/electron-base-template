@@ -1,4 +1,4 @@
-import { dialog, shell } from 'electron';
+import { app, dialog, shell } from 'electron';
 import fg from 'fast-glob';
 import { chunk } from 'lodash';
 
@@ -49,6 +49,7 @@ const getScanPathId = async (folderPath: string) => {
 };
 
 const exportApis = {
+    getAppVersion: async () => app.getVersion(),
     selectFolder: async () => {
         const pathRes = dialog.showOpenDialogSync({
             properties: ['openDirectory'],
@@ -56,13 +57,13 @@ const exportApis = {
         if (!pathRes || pathRes.length === 0) return;
         return pathRes[0].replace(/\\/g, '/');
     },
-    openFile: async (file: string) => {
-        console.log(`Open file:[${file}].`);
-        shell.openPath(file);
-    },
-    openFileFolder: async (path: string) => {
-        console.log(`Open file folder:[${path}].`);
-        shell.showItemInFolder(path);
+    openFileOrFolder: async (file: string, folder?: boolean) => {
+        console.log(`Open file${folder ? ' folder' : ''}:[${file}].`);
+        if (folder) {
+            shell.showItemInFolder(file);
+        } else {
+            shell.openPath(file);
+        }
     },
     scanProjectsToDb: async (folderPath: string) => {
         const processInfo = {

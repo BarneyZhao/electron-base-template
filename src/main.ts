@@ -3,6 +3,8 @@ import { app, BrowserWindow, Menu, MenuItem, ipcMain } from 'electron';
 import Url from 'url';
 import Path from 'path';
 import { existsSync } from 'fs';
+import { debounce } from 'lodash';
+import Store from 'electron-store';
 
 import { Service } from 'types';
 
@@ -10,16 +12,18 @@ import mainConfig from './config';
 import services from './services';
 import { closeDb } from './db';
 
-const getLocalAppFile = () => {
-    if (existsSync(mainConfig.LOCAL_URL)) {
+const store = new Store();
+
+const getLocalDocsFile = () => {
+    if (existsSync(mainConfig.DOCS_URL)) {
         return Url.format({
             protocol: 'file',
             slashes: true,
-            // pathname: Path.join(__dirname, mainConfig.LOCAL_URL), // 构建包内的路径
-            pathname: mainConfig.LOCAL_URL, // 项目根路径
+            // pathname: Path.join(__dirname, mainConfig.DOCS_URL), // 构建包内的路径
+            pathname: mainConfig.DOCS_URL, // 项目根路径
         });
     }
-    console.log('\n No local app file.');
+    console.log('\n No local docs file.');
     return '';
 };
 
@@ -29,6 +33,16 @@ let mainWindow: BrowserWindow | null;
 
 const isDev = process.env.NODE_ENV === 'dev';
 
+const setUserWindowSettings = debounce(() => {
+    if (mainWindow) {
+        const { x, y, width, height } = mainWindow.getBounds();
+        store.set('window.x', x);
+        store.set('window.y', y);
+        store.set('window.width', width);
+        store.set('window.height', height);
+    }
+}, 1000);
+
 const createWindow = () => {
     // Create the browser window.
     mainWindow = new BrowserWindow({
@@ -36,6 +50,7 @@ const createWindow = () => {
             preload: Path.join(__dirname, 'preload.js'),
         },
         ...mainConfig.WINDOW_OPS,
+        ...((store.get('window') as object) || {}),
     });
 
     // and load the index.html of the app.
@@ -45,12 +60,12 @@ const createWindow = () => {
         if (mainConfig.DEV_TYPE === 0) {
             appUrl = mainConfig.DEV_URL;
         } else if (mainConfig.DEV_TYPE === 1) {
-            appUrl = getLocalAppFile();
+            appUrl = getLocalDocsFile();
         }
     } else {
         // prod
         // 本地 app 存在则加载本地
-        appUrl = getLocalAppFile();
+        appUrl = getLocalDocsFile();
     }
     // 远程 gh-pages 保底
     mainWindow.loadURL(appUrl || mainConfig.REMOTE_URL);
@@ -66,6 +81,8 @@ const createWindow = () => {
         mainWindow = null;
         closeDb();
     });
+    mainWindow.on('resize', setUserWindowSettings);
+    mainWindow.on('move', setUserWindowSettings);
 };
 
 const setAppMenus = () => {

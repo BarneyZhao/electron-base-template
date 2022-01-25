@@ -1,6 +1,6 @@
 {
     "name": "electron-base",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "productName": "electron-base",
     "description": "electron-base",
     "main": "dist/main.js",
@@ -15,6 +15,7 @@
     "author": "zhaoxuanzi",
     "license": "MIT",
     "dependencies": {
+        "electron-store": "^8.0.1",
         "fast-glob": "^3.2.9",
         "lodash": "^4.17.21",
         "node-worker-threads-pool": "^1.5.1",
