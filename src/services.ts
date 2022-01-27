@@ -1,3 +1,4 @@
+import os from 'os';
 import { app, dialog, shell } from 'electron';
 import fg from 'fast-glob';
 import { chunk } from 'lodash';
@@ -11,6 +12,11 @@ import {
     ProjectTableRow,
     getDb,
 } from './db';
+
+const getPlatformPath = (path: string) => {
+    // windows 斜杠替换为反斜杠
+    return os.platform() === 'win32' ? path.replace(/\//g, '\\') : path;
+};
 
 const getProjectFolders = async (folderPath: string): Promise<string[]> => {
     const filesPath = await fg(`${folderPath}/**/${JSON_FILE}`);
@@ -58,11 +64,12 @@ const exportApis = {
         return pathRes[0].replace(/\\/g, '/');
     },
     openFileOrFolder: async (file: string, folder?: boolean) => {
-        console.log(`Open file${folder ? ' folder' : ''}:[${file}].`);
+        const filePath = getPlatformPath(file);
+        console.log(`Open file${folder ? ' folder' : ''}:[${filePath}].`);
         if (folder) {
-            shell.showItemInFolder(file);
+            shell.showItemInFolder(filePath);
         } else {
-            shell.openPath(file);
+            shell.openPath(filePath);
         }
     },
     scanProjectsToDb: async (folderPath: string) => {
