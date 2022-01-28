@@ -4,7 +4,7 @@ export default {
     WINDOW_OPS: {
         width: 1600,
         height: 900,
-        title: 'electron-base',
+        title: 'wallpaper-engine-video-viewer',
         autoHideMenuBar: true,
     },
     // 开发时的前端加载类型: 0=DEV_URL, 1=LOCAL_URL, 2=REMOTE_URL

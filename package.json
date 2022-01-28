@@ -1,7 +1,7 @@
 {
     "name": "electron-base",
     "version": "1.1.1",
-    "productName": "electron-base",
+    "productName": "wallpaper-engine-video-viewer",
     "description": "electron-base",
     "main": "dist/main.js",
     "scripts": {
@@ -41,7 +41,7 @@
         "typescript": "^4.4.4"
     },
     "build": {
-        "appId": "com.electron.electron-base",
+        "appId": "com.electron.wallpaper-engine-video-viewer",
         "directories": {
             "output": "e_dist"
         },
