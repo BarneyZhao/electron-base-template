@@ -8,6 +8,7 @@ const apis: ServiceNames[] = [
     'getAppVersion',
     'selectFolder',
     'openFileOrFolder',
+    'openDbFileFolder',
     'scanProjectsToDb',
     'getProjectsByPage',
 ];

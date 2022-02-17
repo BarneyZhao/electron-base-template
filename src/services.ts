@@ -4,12 +4,12 @@ import fg from 'fast-glob';
 import { chunk } from 'lodash';
 
 import workerPool from './worker';
-import { POOL_SIZE, JSON_FILE } from './config';
+import { POOL_SIZE, JSON_FILE, DB_FILE } from './config';
 import {
     SCAN_PATH_TABLE_NAME,
     PROJECT_TABLE_NAME,
     ScanPathTableRow,
-    ProjectTableRow,
+    // ProjectTableRow,
     getDb,
 } from './db';
 
@@ -61,7 +61,7 @@ const exportApis = {
             properties: ['openDirectory'],
         });
         if (!pathRes || pathRes.length === 0) return;
-        return pathRes[0].replace(/\\/g, '/');
+        return pathRes[0].replace(/\\/g, '/'); // 反斜杠替换为斜杠
     },
     openFileOrFolder: async (file: string, folder?: boolean) => {
         const filePath = getPlatformPath(file);
@@ -71,6 +71,9 @@ const exportApis = {
         } else {
             shell.openPath(filePath);
         }
+    },
+    openDbFileFolder: async () => {
+        shell.showItemInFolder(getPlatformPath(DB_FILE));
     },
     scanProjectsToDb: async (folderPath: string) => {
         const processInfo = {
@@ -93,14 +96,14 @@ const exportApis = {
         processInfo.globTime = Date.now() - timestamp;
 
         timestamp = Date.now();
-        const thisRoundFolders = projectFolders.join('","');
+        const thisRoundFolders = '"' + projectFolders.join('","') + '"';
 
         const db = await getDb();
 
         const invalidCount = await new Promise<number>((resolve, reject) => {
             db.get(
                 `SELECT COUNT(*) AS count FROM ${PROJECT_TABLE_NAME}
-                    WHERE scan_path_id=? AND project_folder NOT IN ("${thisRoundFolders}")
+                    WHERE scan_path_id=? AND project_folder NOT IN (${thisRoundFolders})
                 `,
                 [scanPathId],
                 function (err, row: { count: number }) {
@@ -119,7 +122,7 @@ const exportApis = {
             db.serialize(() => {
                 db.run(
                     `DELETE FROM ${PROJECT_TABLE_NAME}
-                        WHERE scan_path_id=? AND project_folder NOT IN ("${thisRoundFolders}")
+                        WHERE scan_path_id=? AND project_folder NOT IN (${thisRoundFolders})
                     `,
                     [scanPathId],
                     function (err) {
@@ -215,15 +218,19 @@ const exportApis = {
         orderBy = 'create_time',
         orderType = 'DESC',
         pageNo = 1,
-        pageSize = 20
+        pageSize = 20,
+        title = ''
     ) => {
         const scanPathId = await getScanPathId(folderPath);
         const querySets = 'project_folder, file, file_size, preview, title';
-        const conditionStr = `
-            WHERE scan_path_id=? AND file NOT NULL
-            ORDER BY ${orderBy} ${orderType}
-        `;
-        const limitStr = `${(pageNo - 1) * pageSize}, ${pageSize}`;
+        let conditionStr = `WHERE scan_path_id=? AND file NOT NULL`;
+        const sqlParams: unknown[] = [scanPathId];
+
+        const queryTitle = title.trim();
+        if (queryTitle) {
+            conditionStr += ` AND title LIKE ? `;
+            sqlParams.push(`%${queryTitle}%`);
+        }
 
         const db = await getDb();
 
@@ -232,30 +239,31 @@ const exportApis = {
                 `SELECT COUNT(*) AS total FROM ${PROJECT_TABLE_NAME}
                     ${conditionStr}
                 `,
-                [scanPathId],
+                sqlParams,
                 function (err, row: { total: number }) {
                     if (!err) {
                         resolve(row.total);
                     } else {
-                        console.log(err);
+                        console.error(err);
                         resolve(0);
                     }
                 }
             );
         });
 
-        return new Promise<{ total: number; list: ProjectTableRow[] }>((resolve) => {
+        return new Promise<{ total: number; list: unknown[] }>((resolve) => {
             db.all(
                 `SELECT ${querySets} FROM ${PROJECT_TABLE_NAME}
                     ${conditionStr}
-                    LIMIT ${limitStr}
+                    ORDER BY ${orderBy} ${orderType}
+                    LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}
                 `,
-                [scanPathId],
-                function (err, data: ProjectTableRow[]) {
+                sqlParams,
+                function (err, data: unknown[]) {
                     if (!err) {
                         resolve({ total, list: data });
                     } else {
-                        console.log(err);
+                        console.error(err);
                         resolve({ total, list: [] });
                     }
                 }

@@ -1,14 +1,13 @@
 {
     "name": "electron-base",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "productName": "wallpaper-engine-video-viewer",
     "description": "electron-base",
     "main": "dist/main.js",
     "scripts": {
         "dev": "tsc -w",
         "el": "npx nodemon -w dist -x cross-env NODE_ENV=dev electron .",
-        "build-el": "tsc && cross-env NODE_ENV=prod electron-builder",
-        "build-win": "tsc && cross-env NODE_ENV=prod electron-builder --win --x64",
+        "build-el": "tsc && cross-env NODE_ENV=prod electron-builder --win --x64",
         "testdb": "ts-node testdb.ts"
     },
     "keywords": [],

@@ -1,9 +1,9 @@
 import sqlite3, { Database } from 'sqlite3';
 
-const DB_FILE = './app.db';
+import { DB_FILE } from './config';
 
 const sqlite = sqlite3.verbose();
-let db: Database;
+let db: Database | undefined;
 
 export const SCAN_PATH_TABLE_NAME = 't_scan_paths';
 export const PROJECT_TABLE_NAME = 't_projects';
@@ -17,6 +17,7 @@ export interface ProjectTableRow {
     scan_path_id: number;
     project_folder: string;
     file: string;
+    file_size: number;
     preview: string;
     title: string;
     create_time: string;
@@ -34,8 +35,8 @@ export async function getDb() {
     db = new sqlite.Database(DB_FILE);
 
     return new Promise<Database>((resolve, reject) => {
-        db.serialize(() => {
-            db.run(
+        (db as Database).serialize(() => {
+            (db as Database).run(
                 `CREATE TABLE IF NOT EXISTS ${SCAN_PATH_TABLE_NAME} (
                     "id"    INTEGER NOT NULL UNIQUE,
                     "path"  TEXT NOT NULL UNIQUE,
@@ -45,7 +46,7 @@ export async function getDb() {
                     if (err) reject(err);
                 }
             );
-            db.run(
+            (db as Database).run(
                 `CREATE TABLE IF NOT EXISTS ${PROJECT_TABLE_NAME} (
                     "scan_path_id"      INTEGER NOT NULL,
                     "project_folder"    TEXT NOT NULL UNIQUE,
@@ -60,7 +61,7 @@ export async function getDb() {
                     if (err) reject(err);
                 }
             );
-            resolve(db);
+            resolve(db as Database);
         });
     });
 }
@@ -68,5 +69,6 @@ export async function getDb() {
 export function closeDb() {
     if (db) {
         db.close();
+        db = undefined;
     }
 }

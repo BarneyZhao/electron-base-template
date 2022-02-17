@@ -8,19 +8,28 @@ import Store from 'electron-store';
 
 import { Service } from 'types';
 
-import mainConfig from './config';
+import {
+    APP_MENUS,
+    DEV_TYPE,
+    DEV_URL,
+    DOCS_URL,
+    IS_DEV,
+    MAC_MENUS,
+    REMOTE_URL,
+    WINDOW_OPS,
+} from './config';
 import services from './services';
 import { closeDb } from './db';
 
 const store = new Store();
 
 const getLocalDocsFile = () => {
-    if (existsSync(mainConfig.DOCS_URL)) {
+    if (existsSync(DOCS_URL)) {
         return Url.format({
             protocol: 'file',
             slashes: true,
-            // pathname: Path.join(__dirname, mainConfig.DOCS_URL), // 构建包内的路径
-            pathname: mainConfig.DOCS_URL, // 项目根路径
+            // pathname: Path.join(__dirname, DOCS_URL), // 构建包内的路径
+            pathname: DOCS_URL, // 项目根路径
         });
     }
     console.log('\n No local docs file.');
@@ -30,8 +39,6 @@ const getLocalDocsFile = () => {
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow: BrowserWindow | null;
-
-const isDev = process.env.NODE_ENV === 'dev';
 
 const setUserWindowSettings = debounce(() => {
     if (mainWindow) {
@@ -49,17 +56,17 @@ const createWindow = () => {
         webPreferences: {
             preload: Path.join(__dirname, 'preload.js'),
         },
-        ...mainConfig.WINDOW_OPS,
+        ...WINDOW_OPS,
         ...((store.get('window') as object) || {}),
     });
 
     // and load the index.html of the app.
     let appUrl = '';
     // mainWindow.loadURL
-    if (isDev) {
-        if (mainConfig.DEV_TYPE === 0) {
-            appUrl = mainConfig.DEV_URL;
-        } else if (mainConfig.DEV_TYPE === 1) {
+    if (IS_DEV) {
+        if (DEV_TYPE === 0) {
+            appUrl = DEV_URL;
+        } else if (DEV_TYPE === 1) {
             appUrl = getLocalDocsFile();
         }
     } else {
@@ -68,10 +75,10 @@ const createWindow = () => {
         appUrl = getLocalDocsFile();
     }
     // 远程 gh-pages 保底
-    mainWindow.loadURL(appUrl || mainConfig.REMOTE_URL);
+    mainWindow.loadURL(appUrl || REMOTE_URL);
 
     // Open the DevTools.
-    if (isDev) mainWindow.webContents.openDevTools();
+    if (IS_DEV) mainWindow.webContents.openDevTools();
 
     // Emitted when the window is closed.
     mainWindow.on('closed', function () {
@@ -86,9 +93,9 @@ const createWindow = () => {
 };
 
 const setAppMenus = () => {
-    const template: MenuItem[] = mainConfig.APP_MENUS as unknown as MenuItem[];
+    const template: MenuItem[] = APP_MENUS as unknown as MenuItem[];
     if (process.platform === 'darwin') {
-        template.unshift(mainConfig.MAC_MENUS as unknown as MenuItem);
+        template.unshift(MAC_MENUS as unknown as MenuItem);
     }
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 };
@@ -101,7 +108,7 @@ app.on('ready', () => {
         createWindow();
         setAppMenus();
     } catch (error) {
-        console.log(JSON.stringify(error));
+        console.error(error);
     }
 });
 
@@ -132,7 +139,7 @@ const registerServices = (services: Record<string, Service>) => {
             return await service(...arg)
                 .then((data) => ({ success: true, data, msg: '' }))
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
                     return {
                         success: false,
                         data: null,

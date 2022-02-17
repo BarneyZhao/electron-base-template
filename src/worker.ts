@@ -27,7 +27,7 @@ const staticPool = new StaticPool({
                     _fs.readFileSync(`${projectPath}/${jsonFile}`, { encoding: 'utf8' })
                 );
             } catch (error) {
-                console.log(error);
+                console.error(error);
             }
             if (!jsonObj.type || !videoReg.test(jsonObj.type)) {
                 return { projectFolder };
@@ -39,7 +39,7 @@ const staticPool = new StaticPool({
                 createTime = fileInfo.ctimeMs;
                 fileSize = Math.round(fileInfo.size / 1024); // bytes to kb, bytes too large for INTEGER
             } catch (error) {
-                console.log(error);
+                console.error(error);
             }
 
             return {
