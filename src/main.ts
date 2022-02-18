@@ -5,14 +5,12 @@ import Path from 'path';
 
 import { Service } from 'types';
 
-import mainConfig from './config';
+import { APP_MENUS, DEV_URL, IS_DEV, MAC_MENUS, PROD_URL, WINDOW_OPS } from './config';
 import services from './services';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow: BrowserWindow | null;
-
-const isDev = process.env.NODE_ENV === 'dev';
 
 const createWindow = () => {
     // Create the browser window.
@@ -20,25 +18,25 @@ const createWindow = () => {
         webPreferences: {
             preload: Path.join(__dirname, 'preload.js'),
         },
-        ...mainConfig.WINDOW_OPS,
+        ...WINDOW_OPS,
     });
 
     // and load the index.html of the app.
     // mainWindow.loadURL
-    if (isDev) {
-        mainWindow.loadURL(mainConfig.DEV_URL);
+    if (IS_DEV) {
+        mainWindow.loadURL(DEV_URL);
     } else {
         mainWindow.loadURL(
             Url.format({
                 protocol: 'file',
                 slashes: true,
-                pathname: Path.join(__dirname, mainConfig.PROD_URL),
+                pathname: Path.join(__dirname, PROD_URL),
             })
         );
     }
 
     // Open the DevTools.
-    if (isDev) mainWindow.webContents.openDevTools();
+    if (IS_DEV) mainWindow.webContents.openDevTools();
 
     // Emitted when the window is closed.
     mainWindow.on('closed', function () {
@@ -50,9 +48,9 @@ const createWindow = () => {
 };
 
 const setAppMenus = () => {
-    const template: MenuItem[] = mainConfig.APP_MENUS as unknown as MenuItem[];
+    const template: MenuItem[] = APP_MENUS as unknown as MenuItem[];
     if (process.platform === 'darwin') {
-        template.unshift(mainConfig.MAC_MENUS as unknown as MenuItem);
+        template.unshift(MAC_MENUS as unknown as MenuItem);
     }
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 };
