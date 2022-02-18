@@ -9,6 +9,7 @@ import Store from 'electron-store';
 import { Service } from 'types';
 
 import {
+    DevTypeEnum,
     APP_MENUS,
     DEV_TYPE,
     DEV_URL,
@@ -64,9 +65,9 @@ const createWindow = () => {
     let appUrl = '';
     // mainWindow.loadURL
     if (IS_DEV) {
-        if (DEV_TYPE === 0) {
+        if (DEV_TYPE === DevTypeEnum.DEV_URL) {
             appUrl = DEV_URL;
-        } else if (DEV_TYPE === 1) {
+        } else if (DEV_TYPE === DevTypeEnum.DOCS_URL) {
             appUrl = getLocalDocsFile();
         }
     } else {

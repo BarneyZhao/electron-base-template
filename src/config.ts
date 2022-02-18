@@ -1,10 +1,16 @@
 import { app } from 'electron';
 import Path from 'path';
 
+export enum DevTypeEnum {
+    DEV_URL,
+    DOCS_URL,
+    REMOTE_URL,
+}
+
 export const IS_DEV = process.env.NODE_ENV === 'dev';
 
-// 开发时的前端加载类型: 0=DEV_URL, 1=LOCAL_URL, 2=REMOTE_URL
-export const DEV_TYPE = 0;
+// 开发时的前端加载类型
+export const DEV_TYPE: DevTypeEnum = DevTypeEnum.REMOTE_URL;
 
 // 本地的前端开发服务
 export const DEV_URL = 'http://localhost:3000';
