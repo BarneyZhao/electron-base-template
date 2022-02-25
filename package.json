@@ -41,7 +41,8 @@
             "output": "e_dist"
         },
         "files": [
-            "dist/**/*"
+            "dist/**/*",
+            "app/**/*"
         ],
         "mac": {
             "target": "dmg",

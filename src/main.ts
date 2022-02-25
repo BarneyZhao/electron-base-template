@@ -1,6 +1,6 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, Menu, MenuItem, ipcMain } from 'electron';
-import Url from 'url';
+import { pathToFileURL } from 'url';
 import Path from 'path';
 
 import { Service } from 'types';
@@ -26,13 +26,7 @@ const createWindow = () => {
     if (IS_DEV) {
         mainWindow.loadURL(DEV_URL);
     } else {
-        mainWindow.loadURL(
-            Url.format({
-                protocol: 'file',
-                slashes: true,
-                pathname: Path.join(__dirname, PROD_URL),
-            })
-        );
+        mainWindow.loadURL(pathToFileURL(Path.join(app.getAppPath(), PROD_URL)).href);
     }
 
     // Open the DevTools.
