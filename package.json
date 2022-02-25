@@ -6,9 +6,9 @@
     "main": "dist/main.js",
     "scripts": {
         "dev-ts": "tsc -w",
-        "dev-el": "npx nodemon -w dist -x cross-env NODE_ENV=dev electron .",
-        "build-mac": "cross-env NODE_ENV=prod electron-builder",
-        "build-win": "cross-env NODE_ENV=prod electron-builder --win --x64"
+        "dev-el": "nodemon -w dist -x cross-env NODE_ENV=dev electron .",
+        "build-mac": "tsc && cross-env NODE_ENV=prod electron-builder",
+        "build-win": "tsc && cross-env NODE_ENV=prod electron-builder --win --x64"
     },
     "keywords": [
         "electron"
